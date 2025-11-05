@@ -7,10 +7,15 @@
     <meta name="description" content="Площадка гиков-энтузиастов Беларуси">
     <meta name="theme-color" content="#000000">
     
-    <!-- PWA Meta -->
+    <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Дно">
+    <meta name="msapplication-TileColor" content="#000000">
+    <meta name="msapplication-TileImage" content="icons/icon-144.png">
     
     <style>
         * {
@@ -128,6 +133,45 @@
                 transform: scale(0.9);
             }
         }
+
+        /* PWA Install Prompt */
+        .install-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            border-radius: 8px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+        }
+
+        .install-prompt.show {
+            display: flex;
+        }
+
+        .install-btn {
+            background: #fff;
+            color: #000;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .close-prompt {
+            background: none;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            font-size: 16px;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
@@ -176,7 +220,15 @@
         </div>
     </main>
 
+    <!-- PWA Install Prompt -->
+    <div class="install-prompt" id="installPrompt">
+        <span>Установить приложение "Дно"?</span>
+        <button class="install-btn" id="installBtn">Установить</button>
+        <button class="close-prompt" id="closePrompt">×</button>
+    </div>
+
     <script>
+        // Timer functionality
         function updateTimer() {
             const targetDate = new Date('2026-01-01T00:00:00+03:00').getTime();
             const now = Date.now();
@@ -204,7 +256,43 @@
             setTimeout(updateTimer, 1000);
         }
 
-        // PWA Registration
+        // PWA Installation
+        let deferredPrompt;
+        const installPrompt = document.getElementById('installPrompt');
+        const installBtn = document.getElementById('installBtn');
+        const closePrompt = document.getElementById('closePrompt');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Show install prompt after 5 seconds
+            setTimeout(() => {
+                if (deferredPrompt) {
+                    installPrompt.classList.add('show');
+                }
+            }, 5000);
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
+                console.log('PWA installed');
+            }
+            
+            deferredPrompt = null;
+            installPrompt.classList.remove('show');
+        });
+
+        closePrompt.addEventListener('click', () => {
+            installPrompt.classList.remove('show');
+        });
+
+        // PWA Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
@@ -217,6 +305,7 @@
             });
         }
 
+        // Initialize timer when DOM is loaded
         document.addEventListener('DOMContentLoaded', updateTimer);
     </script>
 </body>
